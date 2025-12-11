@@ -1,0 +1,157 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "maxq"
+version = "0.0.21"
+description = "Vector search tuning and evaluation platform"
+readme = "README.md"
+license = "Apache-2.0"
+requires-python = ">=3.10"
+authors = [
+    { name = "Thierry Damiba" }
+]
+keywords = ["vector-search", "qdrant", "evaluation", "embeddings", "search"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+dependencies = [
+    "typer>=0.9.0",
+    "click>=8.0.0",
+    "shellingham>=1.5.0",
+    "rich>=13.0.0",
+    "qdrant-client>=1.16.2",
+    "datasets>=2.0.0",
+    "urllib3<2",
+    "readchar>=4.0.0",
+    "openai>=1.0.0",
+    "pydantic>=2.0.0",
+    "pydantic-settings>=2.0.0",
+    "linkup-sdk>=0.1.0",
+    "ragas>=0.1.0",
+    "streamlit>=1.30.0",
+    "fastapi>=0.109.0",
+    "uvicorn>=0.27.0",
+    "python-dotenv>=1.0.0",
+    "slowapi>=0.1.9",
+    "reportlab>=4.0.0",
+    "httpx>=0.26.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-cov>=4.0.0",
+    "pytest-asyncio>=0.23.0",
+    "ruff>=0.3.0",
+    "mypy>=1.8.0",
+    "types-requests>=2.31.0",
+]
+local = [
+    "fastembed>=0.2.0",  # Local embeddings for Docker/self-hosted
+]
+all = [
+    "fastembed>=0.2.0",
+]
+
+[project.scripts]
+maxq = "maxq.cli:app"
+
+[project.urls]
+Homepage = "https://github.com/thierrypdamiba/maxq-project"
+Documentation = "https://github.com/thierrypdamiba/maxq-project#readme"
+Repository = "https://github.com/thierrypdamiba/maxq-project"
+Issues = "https://github.com/thierrypdamiba/maxq-project/issues"
+
+[tool.hatch.build.targets.wheel]
+packages = ["maxq"]
+exclude = [
+    "studio-ui",
+    "*.pyc",
+    "__pycache__",
+    ".DS_Store",
+]
+
+[tool.hatch.build.targets.sdist]
+exclude = [
+    "studio-ui",
+    "*.pyc",
+    "__pycache__",
+    ".DS_Store",
+    ".git",
+    "venv",
+    "dist",
+    "build",
+]
+
+[tool.ruff]
+target-version = "py310"
+line-length = 100
+src = ["maxq", "tests"]
+
+[tool.ruff.lint]
+select = [
+    "E",      # pycodestyle errors
+    "W",      # pycodestyle warnings
+    "F",      # pyflakes
+    "I",      # isort
+    "B",      # flake8-bugbear
+    "C4",     # flake8-comprehensions
+    "UP",     # pyupgrade
+]
+ignore = [
+    "E501",   # line too long (handled by formatter)
+    "B008",   # do not perform function calls in argument defaults
+    "B904",   # raise from
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["maxq"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+[tool.mypy]
+python_version = "3.10"
+strict = false
+warn_return_any = true
+warn_unused_configs = true
+ignore_missing_imports = true
+exclude = ["venv", "build", "dist", ".git"]
+
+[tool.pyright]
+include = ["maxq", "tests"]
+exclude = ["**/node_modules", "**/__pycache__", "build", "dist", ".venv"]
+venvPath = "."
+venv = ".venv"
+pythonVersion = "3.10"
+typeCheckingMode = "basic"
+reportMissingImports = false
+reportMissingModuleSource = false
+reportOptionalMemberAccess = false
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+markers = [
+    "unit: Unit tests",
+    "integration: Integration tests (require Qdrant)",
+    "slow: Slow tests",
+    "api: API endpoint tests",
+]
+filterwarnings = [
+    "ignore::DeprecationWarning",
+    "ignore::UserWarning",
+]
+addopts = "-v --tb=short"

@@ -1,0 +1,53 @@
+# MaxQ Configuration Example
+# Copy to maxq.yaml and customize
+
+# Qdrant Cloud connection
+qdrant:
+  url: "https://your-cluster.cloud.qdrant.io"
+  api_key: "${QDRANT_API_KEY}"  # Use environment variable
+
+# Embedding models (Qdrant Cloud Inference)
+models:
+  dense:
+    default: "sentence-transformers/all-MiniLM-L6-v2"
+    alternatives:
+      - "mixedbread-ai/mxbai-embed-large-v1"
+      - "BAAI/bge-base-en-v1.5"
+  sparse:
+    default: "Qdrant/bm25"
+    alternatives:
+      - "prithivida/Splade_PP_en_v1"
+
+# Chunking settings
+chunking:
+  size: 512
+  overlap: 50
+
+# Search settings
+search:
+  default_limit: 10
+  fusion: "rrf"  # Reciprocal Rank Fusion
+  rrf_k: 60
+
+# API server
+server:
+  host: "0.0.0.0"
+  port: 8000
+  cors_origins:
+    - "http://localhost:3000"
+    - "http://localhost:3333"
+
+# Worker settings
+worker:
+  poll_interval: 1.0  # seconds
+  git_commits: true   # commit progress to git
+
+# Logging
+logging:
+  level: "INFO"
+  format: "[%(asctime)s] [%(levelname)s] %(message)s"
+
+# Storage paths
+storage:
+  data_dir: "~/.maxq"
+  runs_dir: "./runs"

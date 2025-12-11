@@ -1,0 +1,84 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+# Python build artifacts (not src/lib which is frontend code)
+/lib/
+/lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+venv/
+ENV/
+env/
+.venv/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# Environment
+.env
+.env.local
+*.local
+
+# Rust
+target/
+Cargo.lock
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Logs
+*.log
+logs/
+
+# Models cache
+/models/
+.cache/
+
+# Studio UI
+studio-ui/node_modules/
+studio-ui/.next/
+studio-ui/out/
+
+# Runs and artifacts
+runs/
+*.db
+
+# Coverage
+coverage.xml
+
+# Misc
+*.bak
+*.tmp
+.streamlit/
+
+# MyPy
+.mypy_cache/
+
+# Ruff
+.ruff_cache/
+
+# Claude Code
+.claude/
+.claude_settings.json

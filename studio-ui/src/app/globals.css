@@ -1,0 +1,137 @@
+@import "tailwindcss";
+
+:root {
+    /* Qdrant Cloud Exact Colors - Extracted from Screenshots */
+    
+    /* Base: Dark blue/grey backgrounds - exact match */
+    --background: #0F1419;
+    --surface: #1A1F2E;
+    --surface-highlight: #252B3A;
+    
+    /* Sidebar: Dark gray - exact match */
+    --sidebar-bg: #1A1F2E;
+    
+    /* Accents: Qdrant colors - exact match */
+    --qdrant-red: #DC244C;
+    --qdrant-purple: #5D46D1;
+    --qdrant-blue: #3182CE;
+    --qdrant-green: #2E7D32;
+    
+    /* Active sidebar item - light blue highlight */
+    --sidebar-active: #2F3A50;
+    
+    /* Text colors - exact match */
+    --foreground: #FFFFFF;
+    --foreground-muted: #9CA3AF;
+    --foreground-secondary: #6B7280;
+    
+    /* Semantic colors */
+    --success: #2E7D32;
+    --danger: #DC244C;
+    --warning: #F59E0B;
+    
+    /* Borders and dividers - exact match */
+    --border: rgba(255, 255, 255, 0.1);
+    --border-light: rgba(255, 255, 255, 0.06);
+    
+    /* UI Element Colors */
+    --panel-bg: rgba(255, 255, 255, 0.03);
+    --panel-border: rgba(255, 255, 255, 0.06);
+    
+    /* Sidebar states */
+    --sidebar-active-bg: #2F3A50;
+    --sidebar-hover-bg: rgba(255, 255, 255, 0.05);
+    
+    /* Input styles */
+    --input-bg: rgba(0, 0, 0, 0.2);
+    --input-border: rgba(255, 255, 255, 0.1);
+    
+    /* Font - Qdrant uses Inter or similar */
+    --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+
+@theme inline {
+    --color-background: var(--background);
+    --color-surface: var(--surface);
+    --color-surface-highlight: var(--surface-highlight);
+    --color-sidebar-bg: var(--sidebar-bg);
+    --color-foreground: var(--foreground);
+    --color-foreground-muted: var(--foreground-muted);
+    --color-foreground-secondary: var(--foreground-secondary);
+    --color-success: var(--success);
+    --color-danger: var(--danger);
+    --color-warning: var(--warning);
+    --color-border: var(--border);
+    --color-border-light: var(--border-light);
+    
+    --color-qdrant-red: var(--qdrant-red);
+    --color-qdrant-purple: var(--qdrant-purple);
+    --color-qdrant-blue: var(--qdrant-blue);
+    --color-qdrant-green: var(--qdrant-green);
+}
+
+body {
+    background-color: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+}
+
+/* Custom Utilities */
+@layer utilities {
+    .glass-panel {
+        background-color: var(--panel-bg);
+        border: 1px solid var(--panel-border);
+        @apply backdrop-blur-sm;
+    }
+
+    .glass-panel-hover {
+        @apply transition-all duration-200;
+        &:hover {
+            background-color: rgba(255, 255, 255, 0.05);
+        }
+    }
+
+    /* Qdrant Button Styles - exact match */
+    .btn-primary {
+        background-color: var(--qdrant-purple);
+        color: #FFFFFF;
+        font-weight: 500;
+        border-radius: 6px;
+        padding: 8px 16px;
+        transition: all 0.2s;
+        border: none;
+        cursor: pointer;
+    }
+
+    .btn-primary:hover {
+        opacity: 0.9;
+        transform: translateY(-1px);
+    }
+
+    /* Sidebar Active Item - exact match */
+    .nav-item-active {
+        background-color: var(--qdrant-purple);
+        @apply text-white relative;
+        border-radius: 6px;
+    }
+
+    /* Badge Styles */
+    .badge {
+        @apply inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium;
+    }
+
+    .badge-success {
+        @apply bg-qdrant-green text-white;
+    }
+
+    .badge-purple {
+        @apply bg-qdrant-purple text-white;
+    }
+
+    .badge-grey {
+        @apply bg-surface-highlight text-foreground;
+    }
+}

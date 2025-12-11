@@ -1,0 +1,153 @@
+name: 'MaxQ - Vector Search Testing'
+description: 'Run MaxQ evaluation tests for vector search quality regression testing'
+author: 'MaxQ'
+
+branding:
+  icon: 'search'
+  color: 'purple'
+
+inputs:
+  config:
+    description: 'Path to maxq.yaml configuration file'
+    required: false
+    default: 'maxq.yaml'
+  qdrant-url:
+    description: 'Qdrant Cloud URL'
+    required: true
+  qdrant-api-key:
+    description: 'Qdrant API Key'
+    required: true
+  openai-api-key:
+    description: 'OpenAI API Key (optional, for LLM assertions)'
+    required: false
+  tags:
+    description: 'Only run tests with these tags (comma-separated)'
+    required: false
+  fail-on-error:
+    description: 'Fail the action if any tests fail'
+    required: false
+    default: 'true'
+  python-version:
+    description: 'Python version to use'
+    required: false
+    default: '3.11'
+  output-format:
+    description: 'Output format: table, json, github'
+    required: false
+    default: 'github'
+
+outputs:
+  passed:
+    description: 'Whether all tests passed'
+    value: ${{ steps.run-tests.outputs.passed }}
+  total-tests:
+    description: 'Total number of tests run'
+    value: ${{ steps.run-tests.outputs.total_tests }}
+  passed-tests:
+    description: 'Number of tests that passed'
+    value: ${{ steps.run-tests.outputs.passed_tests }}
+  failed-tests:
+    description: 'Number of tests that failed'
+    value: ${{ steps.run-tests.outputs.failed_tests }}
+  report-path:
+    description: 'Path to the JSON report file'
+    value: ${{ steps.run-tests.outputs.report_path }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ inputs.python-version }}
+
+    - name: Install MaxQ
+      shell: bash
+      run: |
+        pip install --upgrade pip
+        pip install maxq
+
+    - name: Validate config
+      shell: bash
+      run: |
+        if [ ! -f "${{ inputs.config }}" ]; then
+          echo "::error::Config file not found: ${{ inputs.config }}"
+          exit 1
+        fi
+        maxq test-validate -c "${{ inputs.config }}"
+
+    - name: Run MaxQ tests
+      id: run-tests
+      shell: bash
+      env:
+        QDRANT_URL: ${{ inputs.qdrant-url }}
+        QDRANT_API_KEY: ${{ inputs.qdrant-api-key }}
+        OPENAI_API_KEY: ${{ inputs.openai-api-key }}
+      run: |
+        # Build command
+        CMD="maxq test -c ${{ inputs.config }} -o json"
+
+        # Add tag filter if specified
+        if [ -n "${{ inputs.tags }}" ]; then
+          IFS=',' read -ra TAGS <<< "${{ inputs.tags }}"
+          for tag in "${TAGS[@]}"; do
+            CMD="$CMD -t $tag"
+          done
+        fi
+
+        # Run tests and capture output
+        REPORT_PATH="maxq_results.json"
+        $CMD > "$REPORT_PATH" 2>&1 || true
+
+        # Parse results
+        if [ -f "$REPORT_PATH" ]; then
+          PASSED=$(cat "$REPORT_PATH" | python -c "import sys, json; d=json.load(sys.stdin); print('true' if d.get('passed', False) else 'false')")
+          TOTAL=$(cat "$REPORT_PATH" | python -c "import sys, json; d=json.load(sys.stdin); print(d.get('summary', {}).get('total_tests', 0))")
+          PASSED_COUNT=$(cat "$REPORT_PATH" | python -c "import sys, json; d=json.load(sys.stdin); print(d.get('summary', {}).get('passed_tests', 0))")
+          FAILED_COUNT=$(cat "$REPORT_PATH" | python -c "import sys, json; d=json.load(sys.stdin); print(d.get('summary', {}).get('failed_tests', 0))")
+        else
+          PASSED="false"
+          TOTAL="0"
+          PASSED_COUNT="0"
+          FAILED_COUNT="0"
+        fi
+
+        # Set outputs
+        echo "passed=$PASSED" >> $GITHUB_OUTPUT
+        echo "total_tests=$TOTAL" >> $GITHUB_OUTPUT
+        echo "passed_tests=$PASSED_COUNT" >> $GITHUB_OUTPUT
+        echo "failed_tests=$FAILED_COUNT" >> $GITHUB_OUTPUT
+        echo "report_path=$REPORT_PATH" >> $GITHUB_OUTPUT
+
+        # Output in requested format
+        if [ "${{ inputs.output-format }}" = "github" ]; then
+          maxq test -c "${{ inputs.config }}" -o github || true
+        elif [ "${{ inputs.output-format }}" = "table" ]; then
+          maxq test -c "${{ inputs.config }}" -o table || true
+        fi
+
+        # Summary
+        echo "## MaxQ Test Results" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "| Metric | Value |" >> $GITHUB_STEP_SUMMARY
+        echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
+        echo "| Status | $([ \"$PASSED\" = \"true\" ] && echo '✅ Passed' || echo '❌ Failed') |" >> $GITHUB_STEP_SUMMARY
+        echo "| Tests | $PASSED_COUNT / $TOTAL passed |" >> $GITHUB_STEP_SUMMARY
+        echo "| Failed | $FAILED_COUNT |" >> $GITHUB_STEP_SUMMARY
+
+    - name: Check for failures
+      shell: bash
+      if: inputs.fail-on-error == 'true'
+      run: |
+        if [ "${{ steps.run-tests.outputs.passed }}" != "true" ]; then
+          echo "::error::MaxQ tests failed: ${{ steps.run-tests.outputs.failed_tests }} test(s) failed"
+          exit 1
+        fi
+
+    - name: Upload report artifact
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: maxq-report
+        path: maxq_results.json
+        retention-days: 30

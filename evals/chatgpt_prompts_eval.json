@@ -1,0 +1,46 @@
+{
+  "name": "chatgpt_prompts_eval",
+  "description": "Evaluation queries for awesome-chatgpt-prompts collection",
+  "queries": [
+    {
+      "id": "q1",
+      "query": "I need a prompt to help me learn a new programming language",
+      "relevant_doc_ids": [],
+      "metadata": {
+        "expected_answer": "You should use a prompt that makes ChatGPT act as a programming tutor or coding instructor who can explain concepts and provide examples."
+      }
+    },
+    {
+      "id": "q2", 
+      "query": "How can I get ChatGPT to help me write better essays?",
+      "relevant_doc_ids": [],
+      "metadata": {
+        "expected_answer": "Use a prompt that makes ChatGPT act as an essay writing coach or editor who can review structure, grammar, and provide feedback."
+      }
+    },
+    {
+      "id": "q3",
+      "query": "I want to practice for a job interview",
+      "relevant_doc_ids": [],
+      "metadata": {
+        "expected_answer": "Use a prompt where ChatGPT acts as an interviewer or career coach who asks relevant questions and provides feedback on your answers."
+      }
+    },
+    {
+      "id": "q4",
+      "query": "Help me create marketing content for my business",
+      "relevant_doc_ids": [],
+      "metadata": {
+        "expected_answer": "Use a prompt that makes ChatGPT act as a marketing expert or copywriter who can create compelling content, slogans, and campaigns."
+      }
+    },
+    {
+      "id": "q5",
+      "query": "I need help with my mental health and anxiety",
+      "relevant_doc_ids": [],
+      "metadata": {
+        "expected_answer": "Use a prompt where ChatGPT acts as a supportive life coach or therapist who can provide coping strategies and emotional support."
+      }
+    }
+  ]
+}

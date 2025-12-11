@@ -1,0 +1,94 @@
+services:
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: maxq-qdrant
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    volumes:
+      - qdrant_data:/qdrant/storage
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:6333/readyz"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+
+  # Text Embeddings Inference - run ANY HuggingFace embedding model
+  # Change --model-id to use any model from https://huggingface.co/models?pipeline_tag=sentence-similarity
+  tei:
+    image: ghcr.io/huggingface/text-embeddings-inference:cpu-1.5
+    container_name: maxq-tei
+    ports:
+      - "8080:80"
+    volumes:
+      - tei_cache:/data
+    command: --model-id BAAI/bge-small-en-v1.5
+    # For GPU, use: ghcr.io/huggingface/text-embeddings-inference:1.5
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: 1
+    #           capabilities: [gpu]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: maxq-backend
+    ports:
+      - "8000:8000"
+    environment:
+      - MAXQ_MODE=tei
+      - MAXQ_TEI_URL=http://tei:80
+      - QDRANT_URL=http://qdrant:6333
+      - QDRANT_API_KEY=${QDRANT_API_KEY:-}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+    volumes:
+      - maxq_data:/root/.maxq
+      - fastembed_cache:/root/.cache/fastembed
+    depends_on:
+      qdrant:
+        condition: service_healthy
+      tei:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./studio-ui
+      dockerfile: Dockerfile
+    container_name: maxq-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8000
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  qdrant_data:
+    driver: local
+  maxq_data:
+    driver: local
+  fastembed_cache:
+    driver: local
+  tei_cache:
+    driver: local

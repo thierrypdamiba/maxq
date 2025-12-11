@@ -1,0 +1,55 @@
+# Git
+.git
+.gitignore
+
+# Python
+__pycache__
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+.env
+*.egg-info/
+dist/
+build/
+.eggs/
+*.egg
+.pytest_cache/
+.mypy_cache/
+
+# Node (for studio-ui)
+studio-ui/node_modules
+studio-ui/.next
+studio-ui/.env*
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker
+Dockerfile
+docker-compose*.yml
+.docker/
+
+# Documentation
+*.md
+!README.md
+docs/
+
+# Tests
+tests/
+*.test.py
+*.spec.ts
+
+# Misc
+*.log
+*.tmp
+.cache/
