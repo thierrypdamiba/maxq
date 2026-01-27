@@ -56,8 +56,11 @@ def in_memory_engine():
 
     with patch("maxq.search_engine.QdrantClient") as mock_client_cls:
         mock_client = MagicMock()
-        mock_client.collection_exists.return_value = False
+        _collections: set = set()
+        mock_client.collection_exists.side_effect = lambda name: name in _collections
         mock_client.get_collections.return_value = MagicMock(collections=[])
+        mock_client.create_collection.side_effect = lambda collection_name, **kw: _collections.add(collection_name)
+        mock_client.recreate_collection.side_effect = lambda collection_name, **kw: _collections.add(collection_name)
         mock_client_cls.return_value = mock_client
 
         engine = MaxQEngine(qdrant_url="https://test.qdrant.io", qdrant_api_key="test-key")

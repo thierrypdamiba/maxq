@@ -1,13 +1,22 @@
 """
 Integration tests for end-to-end workflows.
 These tests verify that multiple components work together correctly.
+
+Requires QDRANT_URL and QDRANT_API_KEY environment variables.
 """
+import os
 import pytest
 from unittest.mock import MagicMock, patch
 from datetime import datetime
 import time
 
+requires_qdrant = pytest.mark.skipif(
+    not os.environ.get("QDRANT_URL") or not os.environ.get("QDRANT_API_KEY"),
+    reason="QDRANT_URL and QDRANT_API_KEY required for integration tests"
+)
 
+
+@requires_qdrant
 class TestEngineEndToEnd:
     """End-to-end tests for the MaxQEngine workflow."""
 
@@ -328,6 +337,7 @@ class TestIndexingServiceEndToEnd:
         assert job.stages[0].name == "validate_plan"
 
 
+@requires_qdrant
 class TestDataFlowIntegration:
     """Tests for data flow between components."""
 
@@ -411,6 +421,8 @@ class TestDataFlowIntegration:
             assert "difficulty" in result.payload
 
 
+@requires_qdrant
+@pytest.mark.integration
 class TestErrorHandling:
     """Tests for error handling across components."""
 
