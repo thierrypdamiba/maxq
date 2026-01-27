@@ -156,7 +156,7 @@ from maxq.server.routers import projects, settings, evals, tuning
 from maxq.server.routers import index as simple_index
 from maxq.server.routers import search as simple_search
 from maxq.server.routers import runs, jobs
-from maxq.server.routers import chat, cleanup
+from maxq.server.routers import chat, cleanup, backfill
 
 # Run database migrations on startup
 from maxq.db.migrations import run_migrations
@@ -181,3 +181,4 @@ app.include_router(tuning.router)
 # Chat and cleanup agents
 app.include_router(chat.router)
 app.include_router(cleanup.router)
+app.include_router(backfill.router)

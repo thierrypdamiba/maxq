@@ -5133,5 +5133,122 @@ def cleanup(
         pass
 
 
+# ============================================
+# Backfill Command
+# ============================================
+
+
+@app.command()
+def backfill(
+    collection: str = typer.Argument(..., help="Collection to backfill"),
+    mode: str = typer.Option("reembed", "--mode", "-m", help="reembed, fill_gaps, or add_vector"),
+    dense_model: str = typer.Option(None, "--dense-model", help="Dense embedding model"),
+    sparse_model: str = typer.Option(None, "--sparse-model", help="Sparse embedding model"),
+    new_vector_name: str = typer.Option(None, "--vector-name", help="Name for new vector space (add_vector mode)"),
+    new_vector_size: int = typer.Option(None, "--vector-size", help="Dimension for new vector space"),
+    batch_size: int = typer.Option(50, "--batch-size", help="Points per batch"),
+    text_field: str = typer.Option("_text", "--text-field", help="Payload field with source text"),
+    analyze_only: bool = typer.Option(False, "--analyze", "-a", help="Only analyze, don't backfill"),
+):
+    """Backfill embeddings: re-embed, fill gaps, or add new vector spaces."""
+    from maxq.backfill import BackfillAgent, BackfillConfig, BackfillMode, BackfillProgress
+
+    print_header()
+
+    try:
+        engine = MaxQEngine()
+    except Exception as e:
+        console.print(f"[red]✗ Failed to connect:[/red] {e}")
+        raise typer.Exit(1)
+
+    agent = BackfillAgent(engine)
+
+    # Analyze first
+    console.print(f"[bold]Analyzing collection '{collection}'...[/bold]\n")
+    analysis = agent.analyze(collection)
+
+    if "error" in analysis:
+        console.print(f"[red]✗ {analysis['error']}[/red]")
+        raise typer.Exit(1)
+
+    # Display analysis
+    table = Table(title="Vector Configuration", show_header=True, header_style="bold cyan")
+    table.add_column("Vector Space")
+    table.add_column("Type")
+    table.add_column("Details")
+
+    for name, cfg in analysis.get("dense_vectors", {}).items():
+        table.add_row(name, "dense", f"dim={cfg.get('size', '?')}, {cfg.get('distance', '?')}")
+    for name, cfg in analysis.get("sparse_vectors", {}).items():
+        table.add_row(name, "sparse", f"modifier={cfg.get('modifier', '?')}")
+
+    console.print(table)
+    console.print(f"\n[bold]Points:[/bold] {analysis['points_count']:,}")
+    console.print(f"[bold]Status:[/bold] {analysis['status']}")
+
+    gaps = analysis.get("gaps", {})
+    if any(v > 0 for v in gaps.values()):
+        console.print(f"\n[yellow]Gaps detected (sample of {analysis['sample_size']}):[/yellow]")
+        if gaps.get("missing_text", 0) > 0:
+            console.print(f"  • Missing text field: {gaps['missing_text']}")
+        if gaps.get("missing_dense", 0) > 0:
+            console.print(f"  • Missing dense vectors: {gaps['missing_dense']}")
+        if gaps.get("missing_sparse", 0) > 0:
+            console.print(f"  • Missing sparse vectors: {gaps['missing_sparse']}")
+    else:
+        console.print("\n[green]✓ No gaps detected in sample[/green]")
+
+    if analyze_only:
+        return
+
+    # Validate mode
+    try:
+        backfill_mode = BackfillMode(mode)
+    except ValueError:
+        console.print(f"[red]✗ Invalid mode: {mode}. Use reembed, fill_gaps, or add_vector.[/red]")
+        raise typer.Exit(1)
+
+    if backfill_mode == BackfillMode.REEMBED and not dense_model:
+        console.print("[red]✗ --dense-model required for reembed mode[/red]")
+        raise typer.Exit(1)
+
+    if backfill_mode == BackfillMode.ADD_VECTOR and not new_vector_name:
+        console.print("[red]✗ --vector-name required for add_vector mode[/red]")
+        raise typer.Exit(1)
+
+    config = BackfillConfig(
+        collection_name=collection,
+        mode=backfill_mode,
+        dense_model=dense_model,
+        sparse_model=sparse_model,
+        new_vector_name=new_vector_name,
+        new_vector_size=new_vector_size,
+        batch_size=batch_size,
+        text_field=text_field,
+    )
+
+    console.print(f"\n[bold]Running backfill ({mode})...[/bold]")
+
+    with Progress(
+        SpinnerColumn(),
+        TextColumn("[progress.description]{task.description}"),
+        BarColumn(),
+        TextColumn("{task.completed}/{task.total}"),
+        console=console,
+    ) as progress_bar:
+        task = progress_bar.add_task("Backfilling...", total=analysis["points_count"])
+
+        def on_progress(p: BackfillProgress):
+            progress_bar.update(task, completed=p.processed + p.skipped + p.failed)
+
+        result = agent.run(config, callback=on_progress)
+
+    console.print(f"\n[bold]Backfill complete:[/bold]")
+    console.print(f"  Processed: [green]{result.processed:,}[/green]")
+    console.print(f"  Skipped:   [yellow]{result.skipped:,}[/yellow]")
+    console.print(f"  Failed:    [red]{result.failed:,}[/red]")
+    console.print(f"  Status:    {result.status}")
+
+
 if __name__ == "__main__":
     app()
