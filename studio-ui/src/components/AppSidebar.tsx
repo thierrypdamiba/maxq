@@ -10,7 +10,9 @@ import {
     Users,
     CreditCard,
     Settings,
-    HelpCircle
+    HelpCircle,
+    MessageSquare,
+    Trash2
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -23,6 +25,8 @@ export function AppSidebar() {
         { name: "Clusters", href: "/clusters", icon: LayoutGrid },
         { name: "Hybrid Cloud", href: "/hybrid-cloud", icon: Cloud },
         { name: "Backups", href: "/backups", icon: Archive },
+        { name: "Chat", href: "/chat", icon: MessageSquare },
+        { name: "Cleanup", href: "/cleanup", icon: Trash2 },
     ];
 
     const accountItems = [

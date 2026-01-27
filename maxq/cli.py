@@ -4957,5 +4957,181 @@ def test_validate_command(
         raise typer.Exit(1)
 
 
+# ============================================
+# Chat Command
+# ============================================
+
+
+@app.command()
+def chat(
+    collection: str = typer.Option(None, "--collection", "-c", help="Collection to chat with"),
+    point_id: str = typer.Option(None, "--point-id", "-p", help="Specific point ID to examine"),
+    message: str = typer.Option(None, "--message", "-m", help="Single message (non-interactive)"),
+):
+    """Chat with your Qdrant clusters, collections, or points."""
+    from maxq.chat import ChatAgent, ChatRequest, ChatScope
+
+    print_header()
+
+    try:
+        engine = MaxQEngine()
+    except Exception as e:
+        console.print(f"[red]✗ Failed to connect:[/red] {e}")
+        raise typer.Exit(1)
+
+    agent = ChatAgent(engine)
+
+    # Determine scope
+    if point_id and collection:
+        scope = ChatScope.POINT
+        console.print(f"[bold cyan]Chat mode:[/bold cyan] Point [dim]{point_id}[/dim] in [dim]{collection}[/dim]\n")
+    elif collection:
+        scope = ChatScope.COLLECTION
+        console.print(f"[bold cyan]Chat mode:[/bold cyan] Collection [dim]{collection}[/dim]\n")
+    else:
+        scope = ChatScope.CLUSTER
+        console.print("[bold cyan]Chat mode:[/bold cyan] Cluster overview\n")
+
+    # Single message mode
+    if message:
+        req = ChatRequest(message=message, scope=scope, collection_name=collection, point_id=point_id)
+        for token in agent.chat(req):
+            console.print(token, end="")
+        console.print()
+        return
+
+    # Interactive mode
+    console.print("[dim]Type 'exit' or 'quit' to leave. Press Enter to send.[/dim]\n")
+    history = []
+
+    while True:
+        try:
+            user_input = Prompt.ask("[bold cyan]You[/bold cyan]")
+        except (KeyboardInterrupt, EOFError):
+            break
+
+        if user_input.lower() in ("exit", "quit", "q"):
+            break
+
+        if not user_input.strip():
+            continue
+
+        from maxq.chat import ChatMessage
+        req = ChatRequest(
+            message=user_input,
+            scope=scope,
+            collection_name=collection,
+            point_id=point_id,
+            history=history,
+        )
+
+        console.print("[bold green]MaxQ[/bold green] ", end="")
+        response_text = ""
+        for token in agent.chat(req):
+            console.print(token, end="")
+            response_text += token
+        console.print("\n")
+
+        history.append(ChatMessage(role="user", content=user_input))
+        history.append(ChatMessage(role="assistant", content=response_text))
+
+    console.print("\n[dim]Chat ended.[/dim]")
+
+
+# ============================================
+# Cleanup Command
+# ============================================
+
+
+@app.command()
+def cleanup(
+    collection: str = typer.Option(None, "--collection", "-c", help="Specific collection to analyze"),
+    dry_run: bool = typer.Option(True, "--dry-run/--execute", help="Preview vs execute actions"),
+    duplicates: bool = typer.Option(False, "--duplicates", "-d", help="Also scan for duplicate points"),
+):
+    """Analyze and clean up your Qdrant cluster."""
+    from maxq.cleanup import CleanupAgent
+
+    print_header()
+
+    try:
+        engine = MaxQEngine()
+    except Exception as e:
+        console.print(f"[red]✗ Failed to connect:[/red] {e}")
+        raise typer.Exit(1)
+
+    agent = CleanupAgent(engine)
+
+    console.print("[bold]Analyzing cluster...[/bold]\n")
+    report = agent.analyze(collection)
+
+    # Display collection stats
+    table = Table(title="Collections", show_header=True, header_style="bold cyan")
+    table.add_column("Name", style="cyan")
+    table.add_column("Points", justify="right")
+    table.add_column("Vectors", justify="right")
+    table.add_column("Segments", justify="right")
+    table.add_column("Status")
+
+    for col in report.collections:
+        status_style = "green" if col.status == "green" else "yellow" if col.status == "yellow" else "red" if col.error else "white"
+        table.add_row(
+            col.name,
+            str(col.points_count),
+            str(col.vectors_count),
+            str(col.segments_count),
+            f"[{status_style}]{col.error or col.status}[/{status_style}]",
+        )
+
+    console.print(table)
+    console.print(f"\n[bold]Total:[/bold] {report.total_collections} collections, {report.total_points:,} points")
+
+    # Empty collections
+    if report.empty_collections:
+        console.print(f"\n[yellow]⚠ Empty collections ({len(report.empty_collections)}):[/yellow]")
+        for name in report.empty_collections:
+            console.print(f"  • {name}")
+
+    # Stale collections
+    if report.stale_collections:
+        console.print(f"\n[yellow]⚠ Potentially stale collections ({len(report.stale_collections)}):[/yellow]")
+        for name in report.stale_collections:
+            console.print(f"  • {name}")
+
+    # Duplicates
+    if duplicates:
+        console.print("\n[bold]Scanning for duplicates...[/bold]")
+        for col in report.collections:
+            if col.points_count > 0:
+                dups = agent.find_duplicates(col.name)
+                if dups:
+                    console.print(f"\n[yellow]⚠ {len(dups)} duplicate groups in '{col.name}':[/yellow]")
+                    for d in dups[:5]:
+                        console.print(f"  • {len(d.point_ids)} copies: {d.sample_text[:80]}...")
+
+    # Suggested actions
+    if report.suggested_actions:
+        console.print(f"\n[bold]Suggested Actions ({len(report.suggested_actions)}):[/bold]")
+        for action in report.suggested_actions:
+            console.print(f"  • [cyan]{action.action}[/cyan] → {action.target}: {action.reason}")
+
+        if dry_run:
+            console.print("\n[dim]Run with --execute to apply these actions.[/dim]")
+        else:
+            console.print("\n[bold red]Executing cleanup actions...[/bold red]")
+            results = agent.execute(report.suggested_actions, dry_run=False)
+            for r in results:
+                style = "green" if r["status"] == "completed" else "red"
+                console.print(f"  [{style}]{r['status']}[/{style}] {r['message']}")
+
+    # LLM summary
+    try:
+        summary = agent.summarize_with_llm(report)
+        if summary:
+            console.print(Panel(summary, title="AI Analysis", border_style="cyan"))
+    except Exception:
+        pass
+
+
 if __name__ == "__main__":
     app()
