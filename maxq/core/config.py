@@ -57,7 +57,7 @@ class Settings(BaseSettings):
     }
 
     # Optional services
-    linkup_api_key: str = "REDACTED"
+    linkup_api_key: str = ""
     openai_api_key: str = ""
 
     # App directory

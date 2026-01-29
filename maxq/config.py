@@ -37,7 +37,7 @@ MODEL_DIMENSIONS = {
 # Optional Services
 # =============================================================================
 # Linkup API Key (provided by MaxQ for natural language dataset search)
-LINKUP_API_KEY = "REDACTED"
+LINKUP_API_KEY = os.getenv("LINKUP_API_KEY", "")
 
 # OpenAI API Key (optional, for LLM features like HyDE, RAG evaluation)
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")

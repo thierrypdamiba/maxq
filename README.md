@@ -120,4 +120,4 @@ maxq setup                # Re-run setup wizard
 
 ## License
 
-MIT
+Apache-2.0 — same as [Qdrant](https://github.com/qdrant/qdrant)
